@@ -9,6 +9,12 @@ export {
     purchaseBurger,
     purchaseInit,
     fetchOrders,
+    purchaseBurgerStart,
+    purchaseBuilderSuccess,
+    purchaseBurgerFail,
+    fetchOrdersSuccess,
+    fetchOrdersFail,
+    fetchOrdersStart
 } from './order';
 export {
     auth,
