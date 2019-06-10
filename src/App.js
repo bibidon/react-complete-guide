@@ -1,72 +1,59 @@
-import React, { Component } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { Route, Switch, Redirect } from 'react-router';
 import { connect } from 'react-redux';
 
 import Layout from './hoc/Layout/Layout';
-import asyncComponent from './hoc/asyncComponent/asyncComponent';
 import BurgerBuilder from './containers/BurgerBuilder/BurgerBuilder';
 import Logout from './containers/Auth/Logout/Logout';
 import * as actions from './store/actions/index';
 
-const asyncCheckout = asyncComponent(() => {
-    return import ('./containers/Checkout/Checkout');
-});
+const Checkout = React.lazy(() => import ('./containers/Checkout/Checkout'));
+const Orders = React.lazy(() => import ('./containers/Orders/Orders'));
+const Auth = React.lazy(() => import ('./containers/Auth/Auth'));
 
-const asyncOrders = asyncComponent(() => {
-    return import ('./containers/Orders/Orders');
-});
+const app = props => {
+    useEffect(() => {
+        props.onTryAutoSignup()
+    }, []);
 
-const asyncAuth = asyncComponent(() => {
-    return import ('./containers/Auth/Auth');
-});
+    let routes = (
+        <Switch>
+            <Route path='/auth' render={ props => <Auth { ...props } /> } />
+            <Route path='/' component={ BurgerBuilder } exact />
+            <Redirect to='/' />
+        </Switch>
+    );
 
-class App extends Component {
-    componentDidMount() {
-        this.props.onTryAutoSignup();
-    }
-
-    render() {
-        let routes = (
+    if (props.isAuthenticated) {
+        routes = (
             <Switch>
-                <Route path='/auth' component={ asyncAuth } />
+                <Route path='/checkout' render={ props => <Checkout { ...props } /> } />
+                <Route path='/orders' render={ props => <Orders { ...props } /> } />
+                <Route path='/logout' component={ Logout } />
+                <Route path='/auth' render={ props => <Auth { ...props } /> } />
                 <Route path='/' component={ BurgerBuilder } exact />
                 <Redirect to='/' />
             </Switch>
         );
-
-        if (this.props.isAuthenticated) {
-            routes = (
-                <Switch>
-                    <Route path='/checkout' component={ asyncCheckout } />
-                    <Route path='/orders' component={ asyncOrders } />
-                    <Route path='/logout' component={ Logout } />
-                    <Route path='/auth' component={ asyncAuth } />
-                    <Route path='/' component={ BurgerBuilder } exact />
-                    <Redirect to='/' />
-                </Switch>
-            );
-        }
-
-        return (
-            <div>
-                <Layout>
-                    { routes }
-                </Layout>
-            </div>
-        );
     }
-}
+
+    return (
+        <div>
+            <Layout>
+                <Suspense fallback={ <p>Loading...</p> }>
+                    { routes }
+                </Suspense>
+            </Layout>
+        </div>
+    );
+};
 
 const mapStateToProps = state => {
-    return {
-        isAuthenticated: state.auth.token !== null
-    };
+    return { isAuthenticated: state.auth.token !== null };
 };
 
 const mapDispatchToProps = dispatch => {
-    return {
-        onTryAutoSignup: () => dispatch(actions.authCheckState())
-    };
+    return { onTryAutoSignup: () => dispatch(actions.authCheckState()) };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default connect(mapStateToProps, mapDispatchToProps)(app);
